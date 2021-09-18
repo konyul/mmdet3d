@@ -1,4 +1,5 @@
 # Copyright (c) OpenMMLab. All rights reserved.
+from re import L
 import numpy as np
 import torch
 from logging import warning
@@ -150,6 +151,43 @@ def points_cam2img(points_3d, proj_mat, with_depth=False):
         return torch.cat([point_2d_res, point_2d[..., 2:3]], dim=-1)
     return point_2d_res
 
+def points_cam2img_jrdb(points_3d):
+    """Project points from camera coordicates to image coordinates.
+
+    Args:
+        points_3d (torch.Tensor): Points in shape (N, 3).
+        proj_mat (torch.Tensor): Transformation matrix between coordinates.
+        with_depth (bool, optional): Whether to keep depth in the output.
+            Defaults to False.
+
+    Returns:
+        torch.Tensor: Points in image coordinates with shape [N, 2].
+    """
+    
+
+    point_2d_res = torch.zeros(points_3d.shape)[:,:,:2]
+    for i in range(point_2d_res.shape[0]):
+
+        point_2d_res[i,:,0],point_2d_res[i,:,1] = projection(points_3d[i,:,:])
+
+
+    return point_2d_res
+
+def projection(pts_3d_rect):
+    '''
+    JRDB에서 메일로 받은 코드
+    '''
+    x = pts_3d_rect[:,0]
+    y = pts_3d_rect[:,1]
+    z = pts_3d_rect[:,2]
+    horizontal_theta = np.arctan(x / z)
+    horizontal_theta += (z < 0) * np.pi
+    horizontal_percent = horizontal_theta/(2 * np.pi)
+    result_x = ((horizontal_percent * 3760) + 1880) % 3760
+    result_y = (485.78 * (y / ((1 / np.cos(horizontal_theta)) *
+        z))) + (0.4375 * 480)
+    return result_x,result_y
+
 
 def mono_cam_box2vis(cam_box):
     """This is a post-processing function on the bboxes from Mono-3D task. If
@@ -195,3 +233,20 @@ def mono_cam_box2vis(cam_box):
         cam_box, box_dim=cam_box.shape[-1], origin=(0.5, 0.5, 0.5))
 
     return cam_box
+
+
+def get_proj_mat_by_coord_type(img_meta, coord_type):
+    """Obtain image features using points.
+
+    Args:
+        img_meta (dict): Meta info.
+        coord_type (str): 'DEPTH' or 'CAMERA' or 'LIDAR'.
+            Can be case-insensitive.
+
+    Returns:
+        torch.Tensor: transformation matrix.
+    """
+    coord_type = coord_type.upper()
+    mapping = {'LIDAR': 'lidar2img', 'DEPTH': 'depth2img', 'CAMERA': 'cam2img'}
+    assert coord_type in mapping.keys()
+    return img_meta[mapping[coord_type]]

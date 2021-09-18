@@ -1,0 +1,9 @@
+all aug
+no aug
+ObjectSample
+ObjectNoise
+RandomFlip3D
+GlobalRotScaleTrans
+PointShuffle
+learning rate
+voxel size

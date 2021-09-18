@@ -6,7 +6,7 @@ from mmdet3d.core.bbox import BaseInstance3DBoxes
 from mmdet3d.core.points import BasePoints
 from mmdet.datasets.builder import PIPELINES
 from mmdet.datasets.pipelines import to_tensor
-
+import pickle
 PIPELINES._module_dict.pop('DefaultFormatBundle')
 
 
@@ -163,6 +163,12 @@ class Collect3D(object):
         data['img_metas'] = DC(img_metas, cpu_only=True)
         for key in self.keys:
             data[key] = results[key]
+        # with open('points.pickle', 'wb') as f:
+        #     pickle.dump(data['points'].data, f)
+        # with open('bbox.pickle', 'wb') as f1:
+        #     pickle.dump(data['gt_bboxes_3d'].data.tensor, f1)
+        # with open('idx.pickle', 'wb') as f2:
+        #     pickle.dump(data['img_metas'].data['sample_idx'], f2)
         return data
 
     def __repr__(self):
